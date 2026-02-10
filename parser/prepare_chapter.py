@@ -71,9 +71,15 @@ def get_image_extension(filename: str) -> str:
 def align_and_prepare(
     en_zip: Path,
     es_zip: Path,
-    threshold: int = DEFAULT_THRESHOLD
+    threshold: int = DEFAULT_THRESHOLD,
+    keep_unpaired: bool = False
 ) -> tuple[AlignmentResult, list[AlignedPage]]:
-    """Align chapters and prepare page mapping."""
+    """Align chapters and prepare page mapping.
+
+    Args:
+        keep_unpaired: If False (default), only include matched pages.
+                       If True, include all pages (some may be missing in one language).
+    """
 
     result = align_chapters(en_zip, es_zip, threshold)
 
@@ -82,7 +88,7 @@ def align_and_prepare(
 
     for match in result.matches:
         if match.match_type in ("match", "weak_match"):
-            # Both languages have this page
+            # Both languages have this page - always include
             aligned_pages.append(AlignedPage(
                 index=page_idx,
                 en_source=match.page_a.filename if match.page_a else None,
@@ -91,8 +97,8 @@ def align_and_prepare(
                 distance=match.distance
             ))
             page_idx += 1
-        elif match.match_type == "insert_a":
-            # EN only - include with placeholder for ES
+        elif keep_unpaired and match.match_type == "insert_a":
+            # EN only - include only if keep_unpaired
             aligned_pages.append(AlignedPage(
                 index=page_idx,
                 en_source=match.page_a.filename,
@@ -101,8 +107,8 @@ def align_and_prepare(
                 distance=None
             ))
             page_idx += 1
-        elif match.match_type == "insert_b":
-            # ES only - include with placeholder for EN
+        elif keep_unpaired and match.match_type == "insert_b":
+            # ES only - include only if keep_unpaired
             aligned_pages.append(AlignedPage(
                 index=page_idx,
                 en_source=None,
@@ -111,6 +117,7 @@ def align_and_prepare(
                 distance=None
             ))
             page_idx += 1
+        # If not keep_unpaired, skip insert_a and insert_b
 
     return result, aligned_pages
 
@@ -180,7 +187,8 @@ def prepare_chapter(
     en_zip: Path,
     es_zip: Path,
     output_dir: Path,
-    threshold: int = DEFAULT_THRESHOLD
+    threshold: int = DEFAULT_THRESHOLD,
+    keep_unpaired: bool = False
 ) -> dict:
     """Prepare aligned chapter for upload."""
 
@@ -189,7 +197,7 @@ def prepare_chapter(
 
     # Align pages
     logger.info("Aligning pages...")
-    result, aligned_pages = align_and_prepare(en_zip, es_zip, threshold)
+    result, aligned_pages = align_and_prepare(en_zip, es_zip, threshold, keep_unpaired)
 
     logger.info(f"  Total aligned pages: {len(aligned_pages)}")
     logger.info(f"  Matched: {sum(1 for p in aligned_pages if p.match_type == 'matched')}")
@@ -241,6 +249,8 @@ def main():
                         help=f"Output directory (default: {DEFAULT_OUTPUT})")
     parser.add_argument("-t", "--threshold", type=int, default=DEFAULT_THRESHOLD,
                         help=f"Similarity threshold (default: {DEFAULT_THRESHOLD})")
+    parser.add_argument("--keep-unpaired", action="store_true",
+                        help="Keep pages that exist only in one language (default: drop them)")
 
     args = parser.parse_args()
 
@@ -257,7 +267,8 @@ def main():
         args.en_zip,
         args.es_zip,
         args.output,
-        args.threshold
+        args.threshold,
+        args.keep_unpaired
     )
 
     print(f"\n{'='*50}")

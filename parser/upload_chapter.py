@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 # Server config
 SERVER_HOST = "smoreg.dev"
 SERVER_USER = "root"
-SERVER_DATA_PATH = "/opt/mangaoff/data"
+SERVER_DATA_PATH = "/opt/mangaoff/data/chapters"  # nginx serves from here
 
 # Local paths
 BACKUP_DIR = Path(__file__).parent.parent / "backup_downloads" / "chapters"
@@ -93,7 +93,8 @@ def parse_range(range_str: str) -> list[str]:
 
 def rsync_upload(manga_slug: str, dry_run: bool = False) -> bool:
     """Upload prepared files to server via rsync."""
-    local_path = UPLOAD_DIR / manga_slug
+    # Local: tmp/upload/manga-slug/chapters/ -> Server: /opt/mangaoff/data/chapters/manga-slug/
+    local_path = UPLOAD_DIR / manga_slug / "chapters"
     remote_path = f"{SERVER_USER}@{SERVER_HOST}:{SERVER_DATA_PATH}/{manga_slug}/"
 
     if not local_path.exists():
@@ -128,6 +129,8 @@ def main():
                         help="Prepare files but don't upload")
     parser.add_argument("--skip-prepare", action="store_true",
                         help="Skip alignment, just upload existing files")
+    parser.add_argument("--keep-unpaired", action="store_true",
+                        help="Keep pages that exist only in one language (default: drop them)")
 
     args = parser.parse_args()
 
@@ -174,7 +177,8 @@ def main():
                     en_zip,
                     es_zip,
                     UPLOAD_DIR,
-                    args.threshold
+                    args.threshold,
+                    args.keep_unpaired
                 )
                 success_count += 1
             except Exception as e:

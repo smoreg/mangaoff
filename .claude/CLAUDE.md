@@ -239,7 +239,9 @@ The `*_alignment.json` file documents which pages matched:
 
 Server: `smoreg.dev`
 User: `root`
-Data path: `/opt/mangaoff/data/`
+Data path: `/opt/mangaoff/data/chapters/{manga-slug}/`
+
+**IMPORTANT:** Nginx serves from `/opt/mangaoff/data/chapters/`, NOT `/opt/mangaoff/data/{manga-slug}/`!
 
 #### Quick Upload Script
 
@@ -261,14 +263,29 @@ python3 upload_chapter.py chainsaw-man --all
 # Dry run (prepare only, don't upload)
 python3 upload_chapter.py chainsaw-man 001 --dry-run
 
-# Skip alignment, just upload existing prepared files
-python3 upload_chapter.py chainsaw-man --all --skip-prepare
+# Keep unpaired pages (pages that exist only in EN or ES)
+python3 upload_chapter.py chainsaw-man 001 --keep-unpaired
 ```
 
 #### Manual rsync
 
 ```bash
-rsync -avz tmp/upload/chainsaw-man/ root@smoreg.dev:/opt/mangaoff/data/chainsaw-man/
+# CORRECT path:
+rsync -avz tmp/upload/chainsaw-man/chapters/ root@smoreg.dev:/opt/mangaoff/data/chapters/chainsaw-man/
+```
+
+#### Server Structure
+
+```
+/opt/mangaoff/data/
+├── chapters/              <- nginx /chapters/ alias points here
+│   └── chainsaw-man/
+│       ├── 001_en.zip
+│       ├── 001_es.zip
+│       └── ...
+└── covers/                <- nginx /covers/ alias points here
+    └── chainsaw-man/
+        └── cover.jpg
 ```
 
 ### How Alignment Works

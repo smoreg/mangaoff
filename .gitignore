@@ -81,3 +81,4 @@ server/mangaoff-server
 *.key
 credentials.*
 secrets.*
+*.backup

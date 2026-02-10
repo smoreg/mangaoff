@@ -9,9 +9,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -36,10 +33,7 @@ fun ReaderScreen(
     viewModel: ReaderViewModel = hiltViewModel()
 ) {
     val pages by viewModel.pages.collectAsState()
-    val enOffset by viewModel.enOffset.collectAsState()
-    val esOffset by viewModel.esOffset.collectAsState()
     var showControls by remember { mutableStateOf(true) }
-    var showOffsetDialog by remember { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val configuration = LocalConfiguration.current
@@ -49,9 +43,9 @@ fun ReaderScreen(
         viewModel.loadChapter(mangaId, chapterNumber)
     }
 
-    // Calculate bilingual pages with offsets applied
-    val bilingualPages = remember(pages, enOffset, esOffset) {
-        viewModel.getBilingualPages(pages, enOffset, esOffset)
+    // Pages are already aligned by server - pair by page number
+    val bilingualPages = remember(pages) {
+        viewModel.getBilingualPages(pages)
     }
 
     val pagerState = rememberPagerState(pageCount = { bilingualPages.size })
@@ -128,15 +122,7 @@ fun ReaderScreen(
                             )
                         }
                     },
-                    actions = {
-                        IconButton(onClick = { showOffsetDialog = true }) {
-                            Icon(
-                                Icons.Default.Settings,
-                                contentDescription = "Page offset settings",
-                                tint = Color.White
-                            )
-                        }
-                    },
+                    actions = { },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Black.copy(alpha = 0.7f),
                         titleContentColor = Color.White
@@ -172,29 +158,12 @@ fun ReaderScreen(
                             color = Color.White,
                             style = MaterialTheme.typography.bodyMedium
                         )
-                        if (enOffset != 0 || esOffset != 0) {
-                            Text(
-                                text = "Offset: EN${if (enOffset >= 0) "+" else ""}$enOffset | ES${if (esOffset >= 0) "+" else ""}$esOffset",
-                                color = Color.Yellow,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
                     }
                 }
             }
         }
     }
 
-    // Offset adjustment dialog
-    if (showOffsetDialog) {
-        OffsetAdjustmentDialog(
-            enOffset = enOffset,
-            esOffset = esOffset,
-            onEnOffsetChange = { viewModel.setEnOffset(it) },
-            onEsOffsetChange = { viewModel.setEsOffset(it) },
-            onDismiss = { showOffsetDialog = false }
-        )
-    }
 }
 
 @Composable
@@ -254,93 +223,6 @@ fun BilingualPage(
             )
         }
     }
-}
-
-@Composable
-fun OffsetAdjustmentDialog(
-    enOffset: Int,
-    esOffset: Int,
-    onEnOffsetChange: (Int) -> Unit,
-    onEsOffsetChange: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Page Offset Adjustment") },
-        text = {
-            Column {
-                Text(
-                    "Adjust page offset if translations have extra/missing pages.",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // EN Offset
-                Text("English offset: $enOffset", style = MaterialTheme.typography.labelLarge)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    IconButton(onClick = { onEnOffsetChange(enOffset - 1) }) {
-                        Icon(Icons.Default.Remove, "Decrease EN offset")
-                    }
-                    Slider(
-                        value = enOffset.toFloat(),
-                        onValueChange = { onEnOffsetChange(it.toInt()) },
-                        valueRange = -10f..10f,
-                        steps = 19,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { onEnOffsetChange(enOffset + 1) }) {
-                        Icon(Icons.Default.Add, "Increase EN offset")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // ES Offset
-                Text("Spanish offset: $esOffset", style = MaterialTheme.typography.labelLarge)
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    IconButton(onClick = { onEsOffsetChange(esOffset - 1) }) {
-                        Icon(Icons.Default.Remove, "Decrease ES offset")
-                    }
-                    Slider(
-                        value = esOffset.toFloat(),
-                        onValueChange = { onEsOffsetChange(it.toInt()) },
-                        valueRange = -10f..10f,
-                        steps = 19,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(onClick = { onEsOffsetChange(esOffset + 1) }) {
-                        Icon(Icons.Default.Add, "Increase ES offset")
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    "Positive offset = skip pages at start\nNegative offset = add blank pages at start",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Done")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                onEnOffsetChange(0)
-                onEsOffsetChange(0)
-            }) {
-                Text("Reset")
-            }
-        }
-    )
 }
 
 data class BilingualPageData(

@@ -139,16 +139,31 @@ class MangaRepository @Inject constructor(
         }
     }
 
-    fun getChapterPages(chapter: ChapterEntity): List<Pair<File, File>> {
+    fun getChapterPages(chapter: ChapterEntity): List<Pair<File?, File?>> {
         if (!chapter.isDownloaded) return emptyList()
 
         val enDir = File(chapter.localEnPath ?: return emptyList())
         val esDir = File(chapter.localEsPath ?: return emptyList())
 
-        val enPages = enDir.listFiles()?.filter { it.isFile }?.sortedBy { it.name } ?: emptyList()
-        val esPages = esDir.listFiles()?.filter { it.isFile }?.sortedBy { it.name } ?: emptyList()
+        // Build maps by page number (filename without extension)
+        val enPages = enDir.listFiles()
+            ?.filter { it.isFile }
+            ?.associateBy { it.nameWithoutExtension }
+            ?: emptyMap()
 
-        return enPages.zip(esPages)
+        val esPages = esDir.listFiles()
+            ?.filter { it.isFile }
+            ?.associateBy { it.nameWithoutExtension }
+            ?: emptyMap()
+
+        // Get all unique page numbers and sort
+        val allPageNumbers = (enPages.keys + esPages.keys)
+            .sortedBy { it.toIntOrNull() ?: Int.MAX_VALUE }
+
+        // Pair by page number - pages with same number should match
+        return allPageNumbers.map { pageNum ->
+            Pair(enPages[pageNum], esPages[pageNum])
+        }
     }
 
     suspend fun deleteChapter(chapter: ChapterEntity): Result<Unit> = withContext(Dispatchers.IO) {

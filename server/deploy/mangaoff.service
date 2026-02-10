@@ -1,0 +1,17 @@
+[Unit]
+Description=MangaOff Server
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/mangaoff
+ExecStart=/opt/mangaoff/bin/mangaoff-server -port 8080 -data /opt/mangaoff/data
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

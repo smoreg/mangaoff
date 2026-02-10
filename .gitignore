@@ -1,0 +1,83 @@
+# ===================
+# Manga Data (LARGE!)
+# ===================
+backup_downloads/
+upload/
+
+# ===================
+# Database
+# ===================
+*.db
+*.sqlite
+*.sqlite3
+
+# ===================
+# Python
+# ===================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+*.egg-info/
+dist/
+build/
+
+# ===================
+# Logs
+# ===================
+*.log
+logs/
+
+# ===================
+# Temp files
+# ===================
+temp/
+tmp/
+*.tmp
+*.temp
+
+# ===================
+# IDE
+# ===================
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# ===================
+# OS
+# ===================
+.DS_Store
+Thumbs.db
+
+# ===================
+# Android
+# ===================
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# ===================
+# Go
+# ===================
+server/mangaoff-server
+
+# ===================
+# Secrets
+# ===================
+.env*
+*.pem
+*.key
+credentials.*
+secrets.*

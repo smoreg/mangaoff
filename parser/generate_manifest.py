@@ -45,7 +45,7 @@ def generate_manifest(manga_slug: str, title: str, output_dir: Path = None) -> d
     def sort_key(ch):
         try:
             return float(ch)
-        except:
+        except (ValueError, TypeError):
             return float('inf')
 
     chapters = []

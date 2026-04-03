@@ -91,7 +91,13 @@ def generate_manifest(
         chapter_files[ch_num][lang] = zip_file
 
     # Build chapters list - only include if both EN and ES exist
-    for ch_num in sorted(chapter_files.keys()):
+    def _chapter_sort_key(ch):
+        try:
+            return float(ch)
+        except (ValueError, TypeError):
+            return float('inf')
+
+    for ch_num in sorted(chapter_files.keys(), key=_chapter_sort_key):
         langs = chapter_files[ch_num]
 
         # Skip if missing either language

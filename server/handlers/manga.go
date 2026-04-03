@@ -55,7 +55,7 @@ func NewMangaHandler(dataDir string) *MangaHandler {
 
 // ListManga returns all available manga
 func (h *MangaHandler) ListManga(w http.ResponseWriter, r *http.Request) {
-	var mangaList []MangaListItem
+	mangaList := make([]MangaListItem, 0)
 
 	// Scan data directory for manga folders with manifest.json
 	entries, err := os.ReadDir(h.DataDir)

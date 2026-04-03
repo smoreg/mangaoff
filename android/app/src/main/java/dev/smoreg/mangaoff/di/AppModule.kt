@@ -33,7 +33,8 @@ object AppModule {
             .writeTimeout(60, TimeUnit.SECONDS)
             .addInterceptor(
                 HttpLoggingInterceptor().apply {
-                    level = HttpLoggingInterceptor.Level.BASIC
+                    level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BASIC
+                            else HttpLoggingInterceptor.Level.NONE
                 }
             )
             .build()
@@ -62,7 +63,8 @@ object AppModule {
             context,
             MangaDatabase::class.java,
             "mangaoff.db"
-        ).build()
+        ).fallbackToDestructiveMigration()
+         .build()
     }
 
     @Provides

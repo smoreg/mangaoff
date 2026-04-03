@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dev.smoreg.mangaoff.data.db.ChapterEntity
 import dev.smoreg.mangaoff.data.repository.MangaRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -38,6 +39,8 @@ class ChapterListViewModel @Inject constructor(
 
     private val _downloadAllProgress = MutableStateFlow(0f)
     val downloadAllProgress: StateFlow<Float> = _downloadAllProgress.asStateFlow()
+
+    private var downloadAllJob: Job? = null
 
     fun loadChapters(mangaId: String) {
         Log.d(TAG, "loadChapters called: mangaId=$mangaId, currentMangaId=$currentMangaId")
@@ -100,7 +103,7 @@ class ChapterListViewModel @Inject constructor(
     fun downloadAllChapters() {
         if (_isDownloadingAll.value || _downloadingChapter.value != null) return
 
-        viewModelScope.launch {
+        downloadAllJob = viewModelScope.launch {
             _isDownloadingAll.value = true
             _downloadAllProgress.value = 0f
 
@@ -131,6 +134,11 @@ class ChapterListViewModel @Inject constructor(
     }
 
     fun cancelDownloadAll() {
+        downloadAllJob?.cancel()
+        downloadAllJob = null
         _isDownloadingAll.value = false
+        _downloadingChapter.value = null
+        _downloadProgress.value = 0f
+        _downloadAllProgress.value = 0f
     }
 }

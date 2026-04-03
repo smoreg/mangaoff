@@ -223,23 +223,25 @@ class MangaRepository @Inject constructor(
         val request = Request.Builder().url(url).build()
         val response = client.newCall(request).execute()
 
-        if (!response.isSuccessful) {
-            throw Exception("Download failed: ${response.code}")
-        }
+        response.use { resp ->
+            if (!resp.isSuccessful) {
+                throw Exception("Download failed: ${resp.code}")
+            }
 
-        response.body?.byteStream()?.use { inputStream ->
-            ZipInputStream(inputStream).use { zis ->
-                var entry = zis.nextEntry
-                while (entry != null) {
-                    if (!entry.isDirectory) {
-                        val file = File(destDir, entry.name)
-                        file.parentFile?.mkdirs()
-                        FileOutputStream(file).use { fos ->
-                            zis.copyTo(fos)
+            resp.body?.byteStream()?.use { inputStream ->
+                ZipInputStream(inputStream).use { zis ->
+                    var entry = zis.nextEntry
+                    while (entry != null) {
+                        if (!entry.isDirectory) {
+                            val file = File(destDir, entry.name)
+                            file.parentFile?.mkdirs()
+                            FileOutputStream(file).use { fos ->
+                                zis.copyTo(fos)
+                            }
                         }
+                        zis.closeEntry()
+                        entry = zis.nextEntry
                     }
-                    zis.closeEntry()
-                    entry = zis.nextEntry
                 }
             }
         }

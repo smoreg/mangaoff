@@ -1,5 +1,20 @@
 # MangaOff Project Instructions
 
+## CRITICAL: LONG-RUNNING SCRIPTS
+
+**NEVER without explicit user permission:**
+- ❌ Run `download_all.py`, `upload_all.py` or similar long scripts
+- ❌ Kill/stop running processes (`pkill`, `kill`, Ctrl+C)
+- ❌ Start background tasks that take more than 30 seconds
+
+**ALWAYS ask first:**
+- "Запустить скрипт X?" / "Run script X?"
+- "Остановить процесс Y?" / "Stop process Y?"
+
+**WHY:** Downloads take hours, killing them loses progress and wastes time.
+
+---
+
 ## CRITICAL: BACKUP DOWNLOADS FOLDER
 
 **Directory: `/Users/smoreg/code/mangaoff/backup_downloads/`**
@@ -108,6 +123,20 @@ MangaDex has strict rate limits (4-5 req/sec). The parser:
 ## Manga Tracker Database
 
 SQLite database at `manga_tracker.db` tracks all manga downloads.
+
+**IMPORTANT:** Database location is `/Users/smoreg/code/mangaoff/manga_tracker.db` (project root, NOT parser/)!
+
+### Database Backup
+
+```bash
+# Create backup
+cp manga_tracker.db manga_tracker.db.backup
+
+# Restore from backup
+cp manga_tracker.db.backup manga_tracker.db
+```
+
+**Always backup before running long downloads!**
 
 ### Database Schema
 
@@ -239,11 +268,60 @@ The `*_alignment.json` file documents which pages matched:
 
 Server: `smoreg.dev`
 User: `root`
-Data path: `/opt/mangaoff/data/chapters/{manga-slug}/`
+Data path: `/opt/mangaoff/data/`
 
-**IMPORTANT:** Nginx serves from `/opt/mangaoff/data/chapters/`, NOT `/opt/mangaoff/data/{manga-slug}/`!
+#### Server Structure (IMPORTANT!)
 
-#### Quick Upload Script
+```
+/opt/mangaoff/data/
+├── chainsaw-man/          <- manifest.json here (API reads from here!)
+│   └── manifest.json
+├── beelzebub/
+│   └── manifest.json
+├── chapters/              <- nginx /chapters/ alias points here
+│   ├── chainsaw-man/
+│   │   ├── 001_en.zip
+│   │   ├── 001_es.zip
+│   │   └── ...
+│   └── beelzebub/
+│       └── ...
+└── covers/                <- nginx /covers/ alias points here
+    ├── chainsaw-man/
+    │   └── cover.jpg
+    └── beelzebub/
+        └── cover.jpg
+```
+
+**CRITICAL:** The Go API reads `manifest.json` from `/opt/mangaoff/data/{manga-slug}/manifest.json`!
+Without manifests, manga won't appear in the app!
+
+#### Upload All Manga (Recommended)
+
+```bash
+cd parser
+
+# Upload all manga (chapters + covers + manifests)
+python3 upload_all.py
+
+# Dry run first
+python3 upload_all.py --dry-run
+
+# List available manga
+python3 upload_all.py --list
+
+# Specific manga only
+python3 upload_all.py --manga chainsaw-man beelzebub
+
+# Only regenerate and upload manifests (skip chapters)
+python3 upload_all.py --manifest-only
+```
+
+The `upload_all.py` script automatically:
+1. Aligns and uploads chapters
+2. Uploads covers
+3. Generates and uploads `manifest.json`
+
+#### Single Chapter Upload
 
 ```bash
 cd parser
@@ -267,25 +345,32 @@ python3 upload_chapter.py chainsaw-man 001 --dry-run
 python3 upload_chapter.py chainsaw-man 001 --keep-unpaired
 ```
 
+**Note:** `upload_chapter.py` does NOT upload manifests! Use `upload_all.py` or manually upload.
+
+#### Generate Manifest Only
+
+```bash
+cd parser
+
+# Generate manifest from uploaded chapters
+python3 generate_manifest.py chainsaw-man "Chainsaw Man"
+
+# Then upload manually:
+ssh root@smoreg.dev "mkdir -p /opt/mangaoff/data/chainsaw-man"
+scp tmp/upload/chainsaw-man/manifest.json root@smoreg.dev:/opt/mangaoff/data/chainsaw-man/
+```
+
 #### Manual rsync
 
 ```bash
-# CORRECT path:
+# Chapters:
 rsync -avz tmp/upload/chainsaw-man/chapters/ root@smoreg.dev:/opt/mangaoff/data/chapters/chainsaw-man/
-```
 
-#### Server Structure
+# Covers:
+rsync -avz ../backup_downloads/covers/chainsaw-man/ root@smoreg.dev:/opt/mangaoff/data/covers/chainsaw-man/
 
-```
-/opt/mangaoff/data/
-├── chapters/              <- nginx /chapters/ alias points here
-│   └── chainsaw-man/
-│       ├── 001_en.zip
-│       ├── 001_es.zip
-│       └── ...
-└── covers/                <- nginx /covers/ alias points here
-    └── chainsaw-man/
-        └── cover.jpg
+# Manifest:
+scp tmp/upload/chainsaw-man/manifest.json root@smoreg.dev:/opt/mangaoff/data/chainsaw-man/
 ```
 
 ### How Alignment Works

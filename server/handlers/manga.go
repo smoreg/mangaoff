@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -94,7 +95,15 @@ func (h *MangaHandler) GetManga(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	mangaID = filepath.Base(mangaID)
+
 	manifestPath := filepath.Join(h.DataDir, mangaID, "manifest.json")
+
+	absPath, err := filepath.Abs(manifestPath)
+	if err != nil || !strings.HasPrefix(absPath, filepath.Clean(h.DataDir)) {
+		http.Error(w, "Invalid manga ID", http.StatusBadRequest)
+		return
+	}
 	manifest, err := loadManifest(manifestPath)
 	if err != nil {
 		http.Error(w, "Manga not found", http.StatusNotFound)

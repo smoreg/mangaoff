@@ -1,5 +1,6 @@
 package dev.smoreg.mangaoff.ui.screens.chapters
 
+import dev.smoreg.mangaoff.util.DebugLog as Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -10,6 +11,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+private const val TAG = "ChapterListVM"
 
 @HiltViewModel
 class ChapterListViewModel @Inject constructor(
@@ -37,16 +40,37 @@ class ChapterListViewModel @Inject constructor(
     val downloadAllProgress: StateFlow<Float> = _downloadAllProgress.asStateFlow()
 
     fun loadChapters(mangaId: String) {
-        if (currentMangaId == mangaId) return
+        Log.d(TAG, "loadChapters called: mangaId=$mangaId, currentMangaId=$currentMangaId")
+        if (currentMangaId == mangaId) {
+            Log.d(TAG, "loadChapters: same manga, skipping")
+            return
+        }
         currentMangaId = mangaId
 
+        // Start collecting chapters (will emit updates as DB changes)
         viewModelScope.launch {
+            Log.d(TAG, "loadChapters: starting Flow collection")
             repository.getChaptersForManga(mangaId).collect { chapters ->
+                val downloaded = chapters.count { it.isDownloaded }
+                Log.d(TAG, "loadChapters: Flow emitted ${chapters.size} chapters, $downloaded downloaded")
                 _chapters.value = chapters
             }
         }
 
-        refresh()
+        // Sequential operations: verify THEN refresh (in same coroutine)
+        viewModelScope.launch {
+            Log.d(TAG, "loadChapters: starting verify+refresh")
+
+            // Step 1: Verify downloaded files match DB status
+            repository.verifyDownloadedChapters(mangaId)
+
+            // Step 2: Refresh from API (reads verified status from DB)
+            _isLoading.value = true
+            repository.refreshChapters(mangaId)
+            _isLoading.value = false
+
+            Log.d(TAG, "loadChapters: verify+refresh done")
+        }
     }
 
     fun refresh() {

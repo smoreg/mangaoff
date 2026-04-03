@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import dev.smoreg.mangaoff.ui.screens.chapters.ChapterListScreen
+import dev.smoreg.mangaoff.ui.screens.debug.DebugScreen
 import dev.smoreg.mangaoff.ui.screens.mangalist.MangaListScreen
 import dev.smoreg.mangaoff.ui.screens.reader.ReaderScreen
 
@@ -14,6 +15,7 @@ object Routes {
     const val MANGA_LIST = "manga_list"
     const val CHAPTERS = "chapters/{mangaId}"
     const val READER = "reader/{mangaId}/{chapterNumber}"
+    const val DEBUG = "debug"
 
     fun chapters(mangaId: String) = "chapters/$mangaId"
     fun reader(mangaId: String, chapterNumber: String) = "reader/$mangaId/$chapterNumber"
@@ -31,7 +33,16 @@ fun MangaNavHost() {
             MangaListScreen(
                 onMangaClick = { mangaId ->
                     navController.navigate(Routes.chapters(mangaId))
+                },
+                onDebugClick = {
+                    navController.navigate(Routes.DEBUG)
                 }
+            )
+        }
+
+        composable(Routes.DEBUG) {
+            DebugScreen(
+                onBackClick = { navController.popBackStack() }
             )
         }
 

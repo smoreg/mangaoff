@@ -45,8 +45,11 @@ interface MangaDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertManga(manga: MangaEntity)
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertMangaList(manga: List<MangaEntity>)
+
+    @Query("UPDATE manga SET title = :title, coverUrl = :coverUrl, chapterCount = :chapterCount WHERE id = :id")
+    suspend fun updateManga(id: String, title: String, coverUrl: String, chapterCount: Int)
 
     @Query("DELETE FROM manga")
     suspend fun deleteAllManga()
@@ -57,11 +60,37 @@ interface ChapterDao {
     @Query("SELECT * FROM chapters WHERE mangaId = :mangaId ORDER BY CAST(number AS REAL)")
     fun getChaptersForManga(mangaId: String): Flow<List<ChapterEntity>>
 
+    @Query("SELECT * FROM chapters WHERE mangaId = :mangaId ORDER BY CAST(number AS REAL)")
+    suspend fun getChaptersListForManga(mangaId: String): List<ChapterEntity>
+
     @Query("SELECT * FROM chapters WHERE mangaId = :mangaId AND number = :number")
     suspend fun getChapter(mangaId: String, number: String): ChapterEntity?
 
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertChapter(chapter: ChapterEntity): Long
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChapters(chapters: List<ChapterEntity>)
+
+    // Update chapter metadata WITHOUT touching download status
+    @Query("""
+        UPDATE chapters SET
+            title = :title,
+            enArchiveUrl = :enArchiveUrl,
+            esArchiveUrl = :esArchiveUrl,
+            enPageCount = :enPageCount,
+            esPageCount = :esPageCount
+        WHERE mangaId = :mangaId AND number = :number
+    """)
+    suspend fun updateChapterMetadata(
+        mangaId: String,
+        number: String,
+        title: String,
+        enArchiveUrl: String,
+        esArchiveUrl: String,
+        enPageCount: Int,
+        esPageCount: Int
+    )
 
     @Query("UPDATE chapters SET isDownloaded = :downloaded, localEnPath = :enPath, localEsPath = :esPath WHERE mangaId = :mangaId AND number = :number")
     suspend fun updateDownloadStatus(mangaId: String, number: String, downloaded: Boolean, enPath: String?, esPath: String?)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -26,6 +27,7 @@ import dev.smoreg.mangaoff.data.db.MangaEntity
 @Composable
 fun MangaListScreen(
     onMangaClick: (String) -> Unit,
+    onDebugClick: () -> Unit,
     viewModel: MangaListViewModel = hiltViewModel()
 ) {
     val mangaList by viewModel.mangaList.collectAsState()
@@ -41,6 +43,9 @@ fun MangaListScreen(
             TopAppBar(
                 title = { Text("MangaOff") },
                 actions = {
+                    IconButton(onClick = onDebugClick) {
+                        Icon(Icons.Default.BugReport, contentDescription = "Debug")
+                    }
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
